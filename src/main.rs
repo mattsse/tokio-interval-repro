@@ -4,6 +4,7 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
+use tokio::time::Instant;
 use tokio::time::Interval;
 
 pub fn tokio_runtime() -> Result<tokio::runtime::Runtime, std::io::Error> {
@@ -16,12 +17,16 @@ pub fn tokio_runtime() -> Result<tokio::runtime::Runtime, std::io::Error> {
 struct EventHandler {
     #[pin]
     interval: Interval,
+    now: Instant,
 }
 
 impl EventHandler {
     fn new() -> Self {
         let interval = tokio::time::interval(Duration::from_secs(2));
-        Self { interval }
+        Self {
+            interval,
+            now: Instant::now(),
+        }
     }
 }
 
@@ -30,9 +35,10 @@ impl Future for EventHandler {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
-        dbg!("polled");
+        println!("polled");
         if this.interval.poll_tick(cx).is_ready() {
-            dbg!("is ready");
+            println!("is ready, elapsed {:?}", this.now.elapsed());
+            *this.now = Instant::now();
         }
 
         // cx.waker().wake_by_ref();
